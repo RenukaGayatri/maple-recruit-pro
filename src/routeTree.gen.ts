@@ -13,6 +13,9 @@ import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as AssessmentRouteImport } from './routes/assessment'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminCandidateIdRouteImport } from './routes/admin/candidate.$id'
 
 const ThankYouRoute = ThankYouRouteImport.update({
   id: '/thank-you',
@@ -34,18 +37,39 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCandidateIdRoute = AdminCandidateIdRouteImport.update({
+  id: '/admin/candidate/$id',
+  path: '/admin/candidate/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assessment': typeof AssessmentRoute
   '/start': typeof StartRoute
   '/thank-you': typeof ThankYouRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/candidate/$id': typeof AdminCandidateIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assessment': typeof AssessmentRoute
   '/start': typeof StartRoute
   '/thank-you': typeof ThankYouRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin': typeof AdminIndexRoute
+  '/admin/candidate/$id': typeof AdminCandidateIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +77,38 @@ export interface FileRoutesById {
   '/assessment': typeof AssessmentRoute
   '/start': typeof StartRoute
   '/thank-you': typeof ThankYouRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/candidate/$id': typeof AdminCandidateIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/assessment' | '/start' | '/thank-you'
+  fullPaths:
+    | '/'
+    | '/assessment'
+    | '/start'
+    | '/thank-you'
+    | '/admin/dashboard'
+    | '/admin/'
+    | '/admin/candidate/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assessment' | '/start' | '/thank-you'
-  id: '__root__' | '/' | '/assessment' | '/start' | '/thank-you'
+  to:
+    | '/'
+    | '/assessment'
+    | '/start'
+    | '/thank-you'
+    | '/admin/dashboard'
+    | '/admin'
+    | '/admin/candidate/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/assessment'
+    | '/start'
+    | '/thank-you'
+    | '/admin/dashboard'
+    | '/admin/'
+    | '/admin/candidate/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +116,9 @@ export interface RootRouteChildren {
   AssessmentRoute: typeof AssessmentRoute
   StartRoute: typeof StartRoute
   ThankYouRoute: typeof ThankYouRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminCandidateIdRoute: typeof AdminCandidateIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +151,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/candidate/$id': {
+      id: '/admin/candidate/$id'
+      path: '/admin/candidate/$id'
+      fullPath: '/admin/candidate/$id'
+      preLoaderRoute: typeof AdminCandidateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +180,9 @@ const rootRouteChildren: RootRouteChildren = {
   AssessmentRoute: AssessmentRoute,
   StartRoute: StartRoute,
   ThankYouRoute: ThankYouRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminCandidateIdRoute: AdminCandidateIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
