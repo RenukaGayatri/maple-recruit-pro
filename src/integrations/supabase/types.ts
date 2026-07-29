@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      candidates: {
+        Row: {
+          ai_evaluation: Json | null
+          ai_summary: string | null
+          completed: boolean
+          created_at: string
+          descriptive_answer: string | null
+          descriptive_score: number | null
+          email: string
+          full_name: string
+          id: string
+          mcq_answers: Json | null
+          mcq_score: number | null
+          percentage: number | null
+          role: string | null
+          status: string | null
+          submitted_at: string | null
+          total_score: number | null
+        }
+        Insert: {
+          ai_evaluation?: Json | null
+          ai_summary?: string | null
+          completed?: boolean
+          created_at?: string
+          descriptive_answer?: string | null
+          descriptive_score?: number | null
+          email: string
+          full_name: string
+          id?: string
+          mcq_answers?: Json | null
+          mcq_score?: number | null
+          percentage?: number | null
+          role?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          total_score?: number | null
+        }
+        Update: {
+          ai_evaluation?: Json | null
+          ai_summary?: string | null
+          completed?: boolean
+          created_at?: string
+          descriptive_answer?: string | null
+          descriptive_score?: number | null
+          email?: string
+          full_name?: string
+          id?: string
+          mcq_answers?: Json | null
+          mcq_score?: number | null
+          percentage?: number | null
+          role?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          total_score?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
