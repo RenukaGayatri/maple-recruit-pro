@@ -77,20 +77,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Maple Learning Solutions — Recruitment Assessment Portal" },
+      { title: "Maple Learning Solutions — Internship Assessment Portal" },
       {
         name: "description",
         content:
-          "Official Recruitment Assessment Portal for Maple Learning Solutions. Complete your internship assessment to advance in our hiring process.",
+          "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here.",
       },
-      { property: "og:title", content: "Maple Learning Solutions — Recruitment Assessment" },
+      { property: "og:title", content: "Maple Learning Solutions — Internship Assessment Portal" },
       {
         property: "og:description",
         content:
-          "Campus Recruitment Drive — Internship Assessment Portal for shortlisted candidates.",
+          "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Maple Learning Solutions — Internship Assessment Portal" },
+      { name: "twitter:description", content: "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52802004-9bad-41c9-a2d0-b2d312ff6b28/id-preview-a06da426--f6109fb7-3404-420b-bb8d-4bae02ea9a60.lovable.app-1785326544489.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52802004-9bad-41c9-a2d0-b2d312ff6b28/id-preview-a06da426--f6109fb7-3404-420b-bb8d-4bae02ea9a60.lovable.app-1785326544489.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

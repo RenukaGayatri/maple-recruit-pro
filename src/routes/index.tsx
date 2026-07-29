@@ -11,10 +11,10 @@ export const Route = createFileRoute("/")({
         content:
           "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here.",
       },
-      { property: "og:title", content: "Maple Learning Solutions — Internship Assessment" },
+      { property: "og:title", content: "Maple Learning Solutions — Internship Assessment Portal" },
       {
         property: "og:description",
-        content: "Campus Recruitment Drive — 20-minute written assessment for shortlisted candidates.",
+        content: "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here.",
       },
     ],
   }),
