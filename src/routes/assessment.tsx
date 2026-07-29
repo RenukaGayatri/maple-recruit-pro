@@ -1,0 +1,384 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { BrandHeader } from "@/components/BrandHeader";
+import {
+  MCQ_QUESTIONS,
+  ROLES,
+  ASSESSMENT_DURATION_MIN,
+  type RoleId,
+} from "@/lib/assessment-data";
+import { saveDraft, submitAssessment } from "@/lib/candidate.functions";
+
+export const Route = createFileRoute("/assessment")({
+  head: () => ({
+    meta: [
+      { title: "Assessment in Progress — Maple Learning Solutions" },
+      { name: "description", content: "Timed internship assessment in progress." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: AssessmentPage,
+});
+
+function AssessmentPage() {
+  const navigate = useNavigate();
+  const draftFn = useServerFn(saveDraft);
+  const submitFn = useServerFn(submitAssessment);
+
+  const [candidateId, setCandidateId] = useState<string | null>(null);
+  const [candidateName, setCandidateName] = useState<string>("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [role, setRole] = useState<RoleId | "">("");
+  const [descriptive, setDescriptive] = useState("");
+  const [section, setSection] = useState<"a" | "b">("a");
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [remaining, setRemaining] = useState(ASSESSMENT_DURATION_MIN * 60);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<"idle" | "saving" | "saved">("idle");
+  const submittedRef = useRef(false);
+
+  // hydrate
+  useEffect(() => {
+    const id = sessionStorage.getItem("mls_candidate_id");
+    const name = sessionStorage.getItem("mls_candidate_name") ?? "";
+    if (!id) {
+      navigate({ to: "/start" });
+      return;
+    }
+    setCandidateId(id);
+    setCandidateName(name);
+
+    const savedStart = sessionStorage.getItem(`mls_start_${id}`);
+    const now = Date.now();
+    if (savedStart) {
+      const elapsed = Math.floor((now - Number(savedStart)) / 1000);
+      setRemaining(Math.max(0, ASSESSMENT_DURATION_MIN * 60 - elapsed));
+    } else {
+      sessionStorage.setItem(`mls_start_${id}`, String(now));
+    }
+
+    const savedAns = sessionStorage.getItem(`mls_ans_${id}`);
+    if (savedAns) {
+      try {
+        const parsed = JSON.parse(savedAns);
+        setAnswers(parsed.answers ?? {});
+        setRole(parsed.role ?? "");
+        setDescriptive(parsed.descriptive ?? "");
+      } catch {}
+    }
+  }, [navigate]);
+
+  // Timer
+  useEffect(() => {
+    if (!candidateId) return;
+    const t = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
+    return () => clearInterval(t);
+  }, [candidateId]);
+
+  // Auto-submit at 0
+  useEffect(() => {
+    if (remaining === 0 && candidateId && !submittedRef.current) {
+      void handleSubmit(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remaining, candidateId]);
+
+  // Autosave every 5s
+  useEffect(() => {
+    if (!candidateId) return;
+    sessionStorage.setItem(
+      `mls_ans_${candidateId}`,
+      JSON.stringify({ answers, role, descriptive }),
+    );
+    setSaved("saving");
+    const t = setTimeout(async () => {
+      try {
+        await draftFn({
+          data: {
+            id: candidateId,
+            role: role || null,
+            mcq_answers: answers,
+            descriptive_answer: descriptive,
+          },
+        });
+        setSaved("saved");
+      } catch {
+        setSaved("idle");
+      }
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [answers, role, descriptive, candidateId, draftFn]);
+
+  const answeredCount = useMemo(
+    () => Object.keys(answers).filter((k) => answers[k]).length,
+    [answers],
+  );
+  const totalSteps = MCQ_QUESTIONS.length + 1;
+  const doneSteps = answeredCount + (role && descriptive.trim().length > 5 ? 1 : 0);
+  const progress = Math.round((doneSteps / totalSteps) * 100);
+
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+  const timerCritical = remaining <= 60;
+
+  async function handleSubmit(auto = false) {
+    if (submittedRef.current || !candidateId) return;
+    if (!auto) {
+      if (!role) {
+        setSection("b");
+        setSubmitError("Please choose a role for Section B.");
+        return;
+      }
+      if (descriptive.trim().length < 20) {
+        setSection("b");
+        setSubmitError("Please write a more detailed answer for Section B (at least a few sentences).");
+        return;
+      }
+    }
+    submittedRef.current = true;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitFn({
+        data: {
+          id: candidateId,
+          role: (role || "learning-content-developer") as RoleId,
+          mcq_answers: answers,
+          descriptive_answer: descriptive || "(No answer provided)",
+        },
+      });
+      sessionStorage.removeItem(`mls_ans_${candidateId}`);
+      sessionStorage.removeItem(`mls_start_${candidateId}`);
+      sessionStorage.removeItem("mls_candidate_id");
+      navigate({ to: "/thank-you" });
+    } catch (err) {
+      submittedRef.current = false;
+      setSubmitting(false);
+      setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
+    }
+  }
+
+  if (!candidateId) return null;
+
+  const currentQ = MCQ_QUESTIONS[currentIdx];
+
+  return (
+    <div className="mesh-bg min-h-screen flex flex-col">
+      <BrandHeader />
+
+      {/* Sticky status bar */}
+      <div className="sticky top-0 z-20 border-b border-border/50 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto max-w-6xl px-6 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="chip">
+                Section {section === "a" ? "A · Aptitude" : "B · Scenario"}
+              </span>
+              <span className="hidden sm:inline text-xs text-muted-foreground truncate">
+                {candidateName}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-muted-foreground">
+                {saved === "saving" ? "Saving…" : saved === "saved" ? "Auto-saved" : ""}
+              </span>
+              <div
+                className={`rounded-full px-4 py-1.5 font-mono text-sm font-bold tabular-nums ${
+                  timerCritical ? "bg-destructive text-destructive-foreground animate-pulse" : "bg-brand text-brand-foreground"
+                }`}
+              >
+                {mm}:{ss}
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[color:var(--accent-green)] to-[color:var(--brand)] transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            {doneSteps} of {totalSteps} answered
+          </div>
+        </div>
+      </div>
+
+      <main className="flex-1 mx-auto w-full max-w-4xl px-6 py-10">
+        {section === "a" && (
+          <>
+            <div className="mb-6 flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                Question {currentIdx + 1} of {MCQ_QUESTIONS.length}
+              </span>
+              <span>2 marks · No negative marking</span>
+            </div>
+
+            <div className="card-premium p-8 animate-float-up" key={currentQ.id}>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--accent-green)]">
+                Question {currentQ.id}
+              </div>
+              <h2 className="mt-2 font-display text-xl font-bold text-brand sm:text-2xl">{currentQ.question}</h2>
+              <div className="mt-6 space-y-3">
+                {currentQ.options.map((opt) => {
+                  const selected = answers[currentQ.id] === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setAnswers((a) => ({ ...a, [currentQ.id]: opt.key }))}
+                      className={`group flex w-full items-start gap-4 rounded-2xl border-2 p-4 text-left transition ${
+                        selected
+                          ? "border-[color:var(--accent-green)] bg-[color:var(--accent-green)]/10"
+                          : "border-border bg-white hover:border-brand/40"
+                      }`}
+                    >
+                      <span
+                        className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold uppercase ${
+                          selected
+                            ? "bg-[color:var(--accent-green)] text-brand"
+                            : "bg-muted text-muted-foreground group-hover:bg-brand/10"
+                        }`}
+                      >
+                        {opt.key}
+                      </span>
+                      <span className="text-sm font-medium text-brand sm:text-[15px]">{opt.text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-8 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+                disabled={currentIdx === 0}
+                className="btn-outline"
+              >
+                ← Previous
+              </button>
+
+              <div className="hidden sm:flex flex-wrap items-center gap-1.5">
+                {MCQ_QUESTIONS.map((q, i) => (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => setCurrentIdx(i)}
+                    className={`h-8 w-8 rounded-lg text-xs font-semibold transition ${
+                      i === currentIdx
+                        ? "bg-brand text-brand-foreground"
+                        : answers[q.id]
+                        ? "bg-[color:var(--accent-green)]/25 text-brand"
+                        : "bg-muted text-muted-foreground hover:bg-brand/10"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+
+              {currentIdx < MCQ_QUESTIONS.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setCurrentIdx((i) => i + 1)}
+                  className="btn-brand"
+                >
+                  Next →
+                </button>
+              ) : (
+                <button type="button" onClick={() => setSection("b")} className="btn-green">
+                  Go to Section B →
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {section === "b" && (
+          <div className="animate-float-up">
+            <div className="mb-6">
+              <div className="chip">Section B · Role Scenario</div>
+              <h2 className="mt-3 font-display text-2xl font-bold text-brand sm:text-3xl">
+                Choose your role and respond to the scenario
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Select ONE role that matches your internship interest. Your answer will be evaluated by AI on
+                communication, clarity, creativity, role understanding, problem solving, and professionalism.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 mb-6">
+              {ROLES.map((r) => {
+                const selected = role === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setRole(r.id)}
+                    className={`rounded-2xl border-2 p-4 text-left transition ${
+                      selected
+                        ? "border-[color:var(--accent-green)] bg-[color:var(--accent-green)]/10"
+                        : "border-border bg-white hover:border-brand/40"
+                    }`}
+                  >
+                    <div className="text-xs font-semibold uppercase tracking-wider text-[color:var(--accent-green)]">
+                      {selected ? "Selected" : "Option"}
+                    </div>
+                    <div className="mt-1 font-display text-sm font-bold text-brand">{r.shortTitle}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {role && (
+              <div className="card-premium p-8">
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--accent-green)]">
+                  Scenario Prompt · {ROLES.find((r) => r.id === role)?.shortTitle}
+                </div>
+                <p className="mt-2 font-display text-lg font-semibold text-brand sm:text-xl">
+                  {ROLES.find((r) => r.id === role)?.prompt}
+                </p>
+                <textarea
+                  value={descriptive}
+                  onChange={(e) => setDescriptive(e.target.value.slice(0, 5000))}
+                  rows={10}
+                  placeholder="Write your response here…"
+                  className="mt-5 w-full rounded-xl border border-border bg-white p-4 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
+                />
+                <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>{descriptive.trim().split(/\s+/).filter(Boolean).length} words</span>
+                  <span>{descriptive.length} / 5000</span>
+                </div>
+              </div>
+            )}
+
+            {submitError && (
+              <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {submitError}
+              </div>
+            )}
+
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" onClick={() => setSection("a")} className="btn-outline">
+                ← Back to Section A
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmit(false)}
+                disabled={submitting}
+                className="btn-green"
+              >
+                {submitting ? "Submitting & evaluating…" : "Submit Assessment"}
+              </button>
+            </div>
+            <p className="mt-3 text-center text-[11px] text-muted-foreground">
+              Once submitted, you cannot return to this assessment.
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
