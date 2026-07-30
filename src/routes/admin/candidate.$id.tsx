@@ -203,7 +203,7 @@ function CandidateDetail() {
               </h2>
               <p className="-mt-2 mb-4 text-xs text-muted-foreground">
                 Each candidate receives a randomly drawn paper from a 50-question bank.
-              </h2>
+              </p>
               <div className="space-y-3">
                 {(Object.keys(c.mcq_answers ?? {})
                   .map((qid) => getQuestionById(qid))
