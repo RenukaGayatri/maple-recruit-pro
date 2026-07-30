@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BrandHeader } from "@/components/BrandHeader";
 import { getCandidate } from "@/lib/admin.functions";
-import { MCQ_QUESTIONS, ROLES } from "@/lib/assessment-data";
+import { getQuestionById, type MCQ, ROLES } from "@/lib/assessment-data";
 
 export const Route = createFileRoute("/admin/candidate/$id")({
   head: () => ({
@@ -201,8 +201,13 @@ function CandidateDetail() {
               <h2 className="font-display text-xl font-bold text-brand mb-4">
                 Section A — General Aptitude (MCQ)
               </h2>
+              <p className="-mt-2 mb-4 text-xs text-muted-foreground">
+                Each candidate receives a randomly drawn paper from a 50-question bank.
+              </h2>
               <div className="space-y-3">
-                {MCQ_QUESTIONS.map((q) => {
+                {(Object.keys(c.mcq_answers ?? {})
+                  .map((qid) => getQuestionById(qid))
+                  .filter(Boolean) as MCQ[]).map((q, qi) => {
                   const chosen = c.mcq_answers?.[String(q.id)];
                   const correct = q.correct;
                   const isCorrect = chosen === correct;
@@ -211,7 +216,7 @@ function CandidateDetail() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            Question {q.id} · 2 marks
+                            Question {qi + 1} · 2 marks
                           </div>
                           <div className="mt-1 font-semibold text-brand">{q.question}</div>
                         </div>
