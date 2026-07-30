@@ -65,7 +65,7 @@ function Landing() {
             <div className="glass relative rounded-[1.75rem] p-8 shadow-[var(--shadow-premium)]">
               <div className="grid grid-cols-3 gap-4 text-center">
                 {[
-                  { k: "15", v: "Questions" },
+                  { k: "11", v: "Questions" },
                   { k: "30", v: "Total Marks" },
                   { k: "70%", v: "To Qualify" },
                 ].map((s) => (
