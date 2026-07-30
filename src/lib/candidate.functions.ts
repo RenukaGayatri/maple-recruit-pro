@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { MCQ_QUESTIONS, ROLES, PASS_PERCENTAGE, TOTAL_MARKS } from "./assessment-data";
+import { getQuestionById, ROLES, PASS_PERCENTAGE, TOTAL_MARKS, MCQ_MARKS } from "./assessment-data";
 
 const CreateInput = z.object({
   full_name: z.string().trim().min(1).max(120),
