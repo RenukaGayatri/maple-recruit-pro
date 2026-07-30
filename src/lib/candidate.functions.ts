@@ -123,13 +123,14 @@ export const submitAssessment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Score MCQs
+    // Score MCQs — each candidate gets a random subset of the 50-question bank,
+    // so we score only the questions that were actually served to them.
     let mcqScore = 0;
-    for (const q of MCQ_QUESTIONS) {
-      if (data.mcq_answers[String(q.id)] === q.correct) mcqScore += q.marks;
+    for (const [qid, chosen] of Object.entries(data.mcq_answers)) {
+      const q = getQuestionById(qid);
+      if (q && chosen === q.correct) mcqScore += q.marks;
     }
-    const mcqMax = MCQ_QUESTIONS.reduce((s, q) => s + q.marks, 0); // 20
-    const descriptiveMax = TOTAL_MARKS - mcqMax; // 10
+    const mcqMax = MCQ_MARKS; // 10 questions × 2 marks
     const mcqPercent = Math.round((mcqScore / mcqMax) * 100);
 
     const roleDef = ROLES.find((r) => r.id === data.role)!;
