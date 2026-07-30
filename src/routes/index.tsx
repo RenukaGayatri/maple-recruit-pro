@@ -65,9 +65,9 @@ function Landing() {
             <div className="glass relative rounded-[1.75rem] p-8 shadow-[var(--shadow-premium)]">
               <div className="grid grid-cols-3 gap-4 text-center">
                 {[
-                  { k: "15", v: "Questions" },
+                  { k: "11", v: "Questions" },
                   { k: "30", v: "Total Marks" },
-                  { k: "80%", v: "To Qualify" },
+                  { k: "70%", v: "To Qualify" },
                 ].map((s) => (
                   <div key={s.v} className="rounded-2xl bg-white/70 p-4">
                     <div className="font-display text-3xl font-extrabold text-brand">{s.k}</div>
@@ -105,30 +105,36 @@ function Landing() {
               A clear path from assessment to offer
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-              Candidates scoring 80% or above will qualify for the interview process.
+              Candidates scoring 70% or above will qualify for the interview process.
             </p>
           </div>
 
           <div className="relative">
             <div className="absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent lg:block" />
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   n: "01",
                   t: "Online Assessment",
-                  d: "15 questions covering aptitude, reasoning, language, and a role-specific scenario.",
-                  meta: "Minimum qualifying score: 80%",
+                  d: "A randomly generated paper covering aptitude, reasoning, language, and a role-specific scenario.",
+                  meta: "Minimum qualifying score: 70%",
                 },
                 {
                   n: "02",
-                  t: "Technical / Functional Interview",
-                  d: "One-to-one interview with the hiring manager focused on role fit and depth.",
-                  meta: "Shortlisted candidates only",
+                  t: "Shortlisting",
+                  d: "Candidates are shortlisted based on their assessment scores and AI-evaluated responses.",
+                  meta: "Based on assessment scores",
                 },
                 {
                   n: "03",
-                  t: "HR Discussion",
-                  d: "Final HR interview covering culture fit, expectations, and offer roll-out.",
+                  t: "Role-Based Interview",
+                  d: "A focused discussion on the role you applied for, testing depth, fit, and practical thinking.",
+                  meta: "Shortlisted candidates only",
+                },
+                {
+                  n: "04",
+                  t: "Manager Interview",
+                  d: "Final round with the hiring manager covering expectations, working style, and offer roll-out.",
                   meta: "Culminates in the offer",
                 },
               ].map((s) => (

@@ -3,9 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BrandHeader } from "@/components/BrandHeader";
 import {
-  MCQ_QUESTIONS,
   ROLES,
   ASSESSMENT_DURATION_MIN,
+  QUESTIONS_PER_ASSESSMENT,
+  drawQuestionIds,
+  getQuestionById,
+  type MCQ,
   type RoleId,
 } from "@/lib/assessment-data";
 import { saveDraft, submitAssessment } from "@/lib/candidate.functions";
@@ -29,6 +32,7 @@ function AssessmentPage() {
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [candidateName, setCandidateName] = useState<string>("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [questionIds, setQuestionIds] = useState<number[]>([]);
   const [role, setRole] = useState<RoleId | "">("");
   const [descriptive, setDescriptive] = useState("");
   const [section, setSection] = useState<"a" | "b">("a");
@@ -58,6 +62,21 @@ function AssessmentPage() {
     } else {
       sessionStorage.setItem(`mls_start_${id}`, String(now));
     }
+
+    // Randomised paper: draw once per candidate, then keep it stable on refresh.
+    const savedPaper = sessionStorage.getItem(`mls_paper_${id}`);
+    let ids: number[] = [];
+    if (savedPaper) {
+      try {
+        const parsed = JSON.parse(savedPaper) as number[];
+        if (Array.isArray(parsed) && parsed.length === QUESTIONS_PER_ASSESSMENT) ids = parsed;
+      } catch {}
+    }
+    if (ids.length === 0) {
+      ids = drawQuestionIds();
+      sessionStorage.setItem(`mls_paper_${id}`, JSON.stringify(ids));
+    }
+    setQuestionIds(ids);
 
     const savedAns = sessionStorage.getItem(`mls_ans_${id}`);
     if (savedAns) {
@@ -111,11 +130,16 @@ function AssessmentPage() {
     return () => clearTimeout(t);
   }, [answers, role, descriptive, candidateId, draftFn]);
 
+  const questions = useMemo(
+    () => questionIds.map((qid) => getQuestionById(qid)).filter(Boolean) as MCQ[],
+    [questionIds],
+  );
+
   const answeredCount = useMemo(
     () => Object.keys(answers).filter((k) => answers[k]).length,
     [answers],
   );
-  const totalSteps = MCQ_QUESTIONS.length + 1;
+  const totalSteps = (questions.length || QUESTIONS_PER_ASSESSMENT) + 1;
   const doneSteps = answeredCount + (role && descriptive.trim().length > 5 ? 1 : 0);
   const progress = Math.round((doneSteps / totalSteps) * 100);
 
@@ -151,6 +175,7 @@ function AssessmentPage() {
       });
       sessionStorage.removeItem(`mls_ans_${candidateId}`);
       sessionStorage.removeItem(`mls_start_${candidateId}`);
+      sessionStorage.removeItem(`mls_paper_${candidateId}`);
       sessionStorage.removeItem("mls_candidate_id");
       navigate({ to: "/thank-you" });
     } catch (err) {
@@ -160,9 +185,9 @@ function AssessmentPage() {
     }
   }
 
-  if (!candidateId) return null;
+  if (!candidateId || questions.length === 0) return null;
 
-  const currentQ = MCQ_QUESTIONS[currentIdx];
+  const currentQ = questions[currentIdx];
 
   return (
     <div className="mesh-bg min-h-screen flex flex-col">
@@ -210,14 +235,14 @@ function AssessmentPage() {
           <>
             <div className="mb-6 flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                Question {currentIdx + 1} of {MCQ_QUESTIONS.length}
+                Question {currentIdx + 1} of {questions.length}
               </span>
               <span>2 marks · No negative marking</span>
             </div>
 
             <div className="card-premium p-8 animate-float-up" key={currentQ.id}>
               <div className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--accent-green)]">
-                Question {currentQ.id}
+                Question {currentIdx + 1}
               </div>
               <h2 className="mt-2 font-display text-xl font-bold text-brand sm:text-2xl">{currentQ.question}</h2>
               <div className="mt-6 space-y-3">
@@ -261,7 +286,7 @@ function AssessmentPage() {
               </button>
 
               <div className="hidden sm:flex flex-wrap items-center gap-1.5">
-                {MCQ_QUESTIONS.map((q, i) => (
+                {questions.map((q, i) => (
                   <button
                     key={q.id}
                     type="button"
@@ -279,7 +304,7 @@ function AssessmentPage() {
                 ))}
               </div>
 
-              {currentIdx < MCQ_QUESTIONS.length - 1 ? (
+              {currentIdx < questions.length - 1 ? (
                 <button
                   type="button"
                   onClick={() => setCurrentIdx((i) => i + 1)}
