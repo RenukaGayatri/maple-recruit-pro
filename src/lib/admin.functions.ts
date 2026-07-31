@@ -52,3 +52,47 @@ export const getCandidate = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// Re-run AI evaluation for a candidate whose original evaluation fell back
+// (e.g. gateway rate limit during a burst of simultaneous submissions).
+export const reevaluateCandidate = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) => GetInput.parse(raw))
+  .handler(async ({ data }) => {
+    requireAdmin(data.token);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { evaluateDescriptive } = await import("./evaluate.server");
+    const { ROLES, PASS_PERCENTAGE, TOTAL_MARKS, MCQ_MARKS } = await import("./assessment-data");
+
+    const { data: row, error } = await supabaseAdmin
+      .from("candidates")
+      .select("id, role, descriptive_answer, mcq_score")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (!row.role || !row.descriptive_answer) throw new Error("Candidate has no submitted answer yet");
+
+    const roleDef = ROLES.find((r) => r.id === row.role);
+    if (!roleDef) throw new Error("Unknown role on candidate record");
+
+    const mcqScore = row.mcq_score ?? 0;
+    const mcqPercent = Math.round((mcqScore / MCQ_MARKS) * 100);
+    const ai = await evaluateDescriptive(row.role, roleDef.prompt, row.descriptive_answer, mcqPercent);
+
+    const totalScore = mcqScore + ai.descriptive_score;
+    const percentage = Math.round((totalScore / TOTAL_MARKS) * 100);
+
+    const { error: upErr } = await supabaseAdmin
+      .from("candidates")
+      .update({
+        descriptive_score: ai.descriptive_score,
+        total_score: totalScore,
+        percentage,
+        status: percentage >= PASS_PERCENTAGE ? "PASS" : "FAIL",
+        ai_evaluation: ai,
+        ai_summary: ai.summary,
+      })
+      .eq("id", data.id);
+    if (upErr) throw new Error(upErr.message);
+    return { ok: true, fallback: ai.fallback === true };
+  });
+

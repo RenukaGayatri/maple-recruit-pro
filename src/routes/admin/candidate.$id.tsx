@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BrandHeader } from "@/components/BrandHeader";
-import { getCandidate } from "@/lib/admin.functions";
+import { getCandidate, reevaluateCandidate } from "@/lib/admin.functions";
 import { getQuestionById, type MCQ, ROLES } from "@/lib/assessment-data";
+
 
 export const Route = createFileRoute("/admin/candidate/$id")({
   head: () => ({
@@ -34,7 +35,9 @@ type Candidate = {
     recommendation?: string;
     summary?: string;
     breakdown?: Record<string, number>;
+    fallback?: boolean;
   } | null;
+
   ai_summary: string | null;
   completed: boolean;
   submitted_at: string | null;
@@ -44,10 +47,13 @@ function CandidateDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const getFn = useServerFn(getCandidate);
+  const reevalFn = useServerFn(reevaluateCandidate);
   const [c, setC] = useState<Candidate | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [rerunning, setRerunning] = useState(false);
+  const [rerunMsg, setRerunMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("mls_admin_token") : null;
     if (!token) {
       nav({ to: "/admin" });
@@ -57,6 +63,31 @@ function CandidateDetail() {
       .then((r) => setC(r as Candidate))
       .catch((e) => setErr(e instanceof Error ? e.message : "Failed"));
   }, [getFn, id, nav]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function onRerun() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("mls_admin_token") : null;
+    if (!token) return;
+    setRerunning(true);
+    setRerunMsg(null);
+    try {
+      const res = await reevalFn({ data: { token, id } });
+      setRerunMsg(
+        res.fallback
+          ? "AI is still unavailable — please try again in a minute."
+          : "AI evaluation refreshed.",
+      );
+      load();
+    } catch (e) {
+      setRerunMsg(e instanceof Error ? e.message : "Re-evaluation failed");
+    } finally {
+      setRerunning(false);
+    }
+  }
+
 
   if (err)
     return (
@@ -122,11 +153,30 @@ function CandidateDetail() {
 
         {c.completed && (
           <>
+            {ai.fallback && (
+              <div className="mt-6 rounded-2xl border border-amber-400/40 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                AI scoring was unavailable when this candidate submitted (likely a busy period). Their
+                answers and aptitude score are saved — re-run the evaluation to get the AI review.
+              </div>
+            )}
+
             {/* AI Analysis */}
             <div className="mt-6 grid gap-6 lg:grid-cols-3">
               <div className="card-premium p-6 lg:col-span-2">
-                <div className="chip">AI Hiring Summary</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="chip">AI Hiring Summary</div>
+                  <button
+                    type="button"
+                    onClick={onRerun}
+                    disabled={rerunning}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-muted disabled:opacity-50"
+                  >
+                    {rerunning ? "Re-evaluating…" : "Re-run AI evaluation"}
+                  </button>
+                </div>
+                {rerunMsg && <p className="mt-2 text-xs text-muted-foreground">{rerunMsg}</p>}
                 <p className="mt-3 text-sm leading-relaxed text-brand">{ai.summary ?? c.ai_summary}</p>
+
                 {ai.recommendation && (
                   <div className="mt-4 rounded-xl bg-brand p-4 text-brand-foreground">
                     <div className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--accent-green)]">
