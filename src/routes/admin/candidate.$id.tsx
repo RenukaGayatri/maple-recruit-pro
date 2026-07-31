@@ -20,6 +20,8 @@ type Candidate = {
   id: string;
   full_name: string;
   email: string;
+  phone: string | null;
+  education_status: string | null;
   role: string | null;
   mcq_answers: Record<string, string> | null;
   descriptive_answer: string | null;
@@ -121,6 +123,8 @@ function CandidateDetail() {
             <div className="min-w-0">
               <h1 className="font-display text-2xl font-bold text-brand sm:text-3xl">{c.full_name}</h1>
               <p className="text-sm text-muted-foreground">{c.email}</p>
+              <p className="text-sm text-muted-foreground">Phone: {c.phone ?? "—"}</p>
+              <p className="text-sm text-muted-foreground">Education: {c.education_status ?? "—"}</p>
               {roleDef && (
                 <div className="mt-3 chip">
                   {roleDef.shortTitle}

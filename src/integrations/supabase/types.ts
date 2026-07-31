@@ -22,12 +22,14 @@ export type Database = {
           created_at: string
           descriptive_answer: string | null
           descriptive_score: number | null
+          education_status: string | null
           email: string
           full_name: string
           id: string
           mcq_answers: Json | null
           mcq_score: number | null
           percentage: number | null
+          phone: string | null
           role: string | null
           status: string | null
           submitted_at: string | null
@@ -40,12 +42,14 @@ export type Database = {
           created_at?: string
           descriptive_answer?: string | null
           descriptive_score?: number | null
+          education_status?: string | null
           email: string
           full_name: string
           id?: string
           mcq_answers?: Json | null
           mcq_score?: number | null
           percentage?: number | null
+          phone?: string | null
           role?: string | null
           status?: string | null
           submitted_at?: string | null
@@ -58,18 +62,143 @@ export type Database = {
           created_at?: string
           descriptive_answer?: string | null
           descriptive_score?: number | null
+          education_status?: string | null
           email?: string
           full_name?: string
           id?: string
           mcq_answers?: Json | null
           mcq_score?: number | null
           percentage?: number | null
+          phone?: string | null
           role?: string | null
           status?: string | null
           submitted_at?: string | null
           total_score?: number | null
         }
         Relationships: []
+      }
+      assessment_candidates: {
+        Row: {
+          created_at: string
+          education_status: string | null
+          email: string
+          id: string
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          education_status?: string | null
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          education_status?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      assessment_attempts: {
+        Row: {
+          assessment_id: string
+          candidate_id: string
+          id: string
+          started_at: string
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          assessment_id: string
+          candidate_id: string
+          id?: string
+          started_at?: string
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          candidate_id?: string
+          id?: string
+          started_at?: string
+          status?: string
+          submitted_at?: string | null
+        }
+        Relationships: [{ foreignKeyName: "assessment_attempts_candidate_id_fkey"; columns: ["candidate_id"]; referencedRelation: "assessment_candidates"; referencedColumns: ["id"] }]
+      }
+      assessment_answers: {
+        Row: {
+          attempt_id: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          selected_answer: string | null
+          time_taken: number
+        }
+        Insert: {
+          attempt_id: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          selected_answer?: string | null
+          time_taken?: number
+        }
+        Update: {
+          attempt_id?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          selected_answer?: string | null
+          time_taken?: number
+        }
+        Relationships: [{ foreignKeyName: "assessment_answers_attempt_id_fkey"; columns: ["attempt_id"]; referencedRelation: "assessment_attempts"; referencedColumns: ["id"] }]
+      }
+      assessment_scores: {
+        Row: {
+          ai_score: number | null
+          attempt_id: string
+          id: string
+          percentage: number | null
+          recommendation: string | null
+          score: number | null
+          skill_level: string | null
+          strengths: string[] | null
+          suitable_job_roles: string[] | null
+          summary: string | null
+          weaknesses: string[] | null
+        }
+        Insert: {
+          ai_score?: number | null
+          attempt_id: string
+          id?: string
+          percentage?: number | null
+          recommendation?: string | null
+          score?: number | null
+          skill_level?: string | null
+          strengths?: string[] | null
+          suitable_job_roles?: string[] | null
+          summary?: string | null
+          weaknesses?: string[] | null
+        }
+        Update: {
+          ai_score?: number | null
+          attempt_id?: string
+          id?: string
+          percentage?: number | null
+          recommendation?: string | null
+          score?: number | null
+          skill_level?: string | null
+          strengths?: string[] | null
+          suitable_job_roles?: string[] | null
+          summary?: string | null
+          weaknesses?: string[] | null
+        }
+        Relationships: [{ foreignKeyName: "assessment_scores_attempt_id_fkey"; columns: ["attempt_id"]; referencedRelation: "assessment_attempts"; referencedColumns: ["id"] }]
       }
     }
     Views: {

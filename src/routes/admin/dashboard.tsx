@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BrandHeader } from "@/components/BrandHeader";
-import { listCandidates } from "@/lib/admin.functions";
+import { exportCandidatesCsv, listCandidates } from "@/lib/admin.functions";
 import { ROLES } from "@/lib/assessment-data";
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -19,6 +19,8 @@ type Row = {
   id: string;
   full_name: string;
   email: string;
+  phone: string | null;
+  education_status: string | null;
   role: string | null;
   created_at: string;
   submitted_at: string | null;
@@ -32,6 +34,7 @@ type Row = {
 function Dashboard() {
   const nav = useNavigate();
   const listFn = useServerFn(listCandidates);
+  const exportFn = useServerFn(exportCandidatesCsv);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -79,6 +82,25 @@ function Dashboard() {
       return true;
     });
   }, [rows, q, filter]);
+
+  async function handleExport() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("mls_admin_token") : null;
+    if (!token) return;
+    try {
+      const result = await exportFn({ data: { token } });
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "assessment-candidates.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Export failed");
+    }
+  }
 
   function logout() {
     localStorage.removeItem("mls_admin_token");
@@ -143,13 +165,18 @@ function Dashboard() {
                 </button>
               ))}
             </div>
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search name or email…"
-              className="min-w-[220px] rounded-full border border-border bg-white px-4 py-2 text-sm outline-none focus:border-[color:var(--accent-green)]"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search name or email…"
+                className="min-w-[220px] rounded-full border border-border bg-white px-4 py-2 text-sm outline-none focus:border-[color:var(--accent-green)]"
+              />
+              <button type="button" onClick={handleExport} className="btn-outline text-xs">
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {err && (
@@ -186,6 +213,8 @@ function Dashboard() {
                         <td className="py-4 pr-4">
                           <div className="font-semibold text-brand">{r.full_name}</div>
                           <div className="text-xs text-muted-foreground">{r.email}</div>
+                          <div className="text-[11px] text-muted-foreground">{r.phone ?? "—"}</div>
+                          <div className="text-[11px] text-muted-foreground">{r.education_status ?? "—"}</div>
                         </td>
                         <td className="py-4 pr-4 text-xs text-muted-foreground">{roleTitle ?? "—"}</td>
                         <td className="py-4 pr-4 text-xs text-muted-foreground">

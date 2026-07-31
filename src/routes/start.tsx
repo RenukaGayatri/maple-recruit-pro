@@ -24,18 +24,29 @@ function StartPage() {
   const createFn = useServerFn(createCandidate);
   const [fullName, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [educationStatus, setEducationStatus] = useState<"Still Pursuing" | "Completed">("Still Pursuing");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!fullName.trim() || !email.trim()) return;
+    if (!fullName.trim() || !email.trim() || !phone.trim()) return;
     setLoading(true);
     try {
-      const { id } = await createFn({ data: { full_name: fullName.trim(), email: email.trim() } });
+      const { id } = await createFn({
+        data: {
+          full_name: fullName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          education_status: educationStatus,
+        },
+      });
       sessionStorage.setItem("mls_candidate_id", id);
       sessionStorage.setItem("mls_candidate_name", fullName.trim());
+      sessionStorage.setItem("mls_candidate_phone", phone.trim());
+      sessionStorage.setItem("mls_candidate_education_status", educationStatus);
       navigate({ to: "/assessment" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -83,6 +94,30 @@ function StartPage() {
                 placeholder="you@college.edu"
                 className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
               />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-brand">Phone Number</label>
+              <input
+                type="tel"
+                required
+                maxLength={30}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-brand">Education Status</label>
+              <select
+                required
+                value={educationStatus}
+                onChange={(e) => setEducationStatus(e.target.value as "Still Pursuing" | "Completed")}
+                className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
+              >
+                <option value="Still Pursuing">Still Pursuing</option>
+                <option value="Completed">Completed</option>
+              </select>
             </div>
 
             {error && (

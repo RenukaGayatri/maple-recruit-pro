@@ -32,10 +32,55 @@ export const listCandidates = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("candidates")
-      .select("id, full_name, email, role, created_at, submitted_at, completed, total_score, percentage, status, ai_summary")
+      .select("id, full_name, email, phone, education_status, role, created_at, submitted_at, completed, total_score, percentage, status, ai_summary")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+export const exportCandidatesCsv = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) => TokenInput.parse(raw))
+  .handler(async ({ data }) => {
+    requireAdmin(data.token);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("candidates")
+      .select("id, full_name, email, phone, education_status, role, created_at, submitted_at, completed, total_score, percentage, status, ai_summary")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const csvRows = [
+      [
+        "Candidate",
+        "Email",
+        "Phone",
+        "Education Status",
+        "Role",
+        "Date",
+        "Score",
+        "AI Score",
+        "Status",
+        "Summary",
+      ],
+      ...((rows ?? []).map((row) => [
+        row.full_name,
+        row.email,
+        row.phone ?? "",
+        row.education_status ?? "",
+        row.role ?? "",
+        row.submitted_at ?? row.created_at,
+        String(row.total_score ?? ""),
+        String(row.percentage ?? ""),
+        row.status ?? "",
+        row.ai_summary ?? "",
+      ])),
+    ];
+
+    const csv = csvRows
+      .map((entry) => entry.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    return { csv };
   });
 
 const GetInput = z.object({ token: z.string(), id: z.string().uuid() });

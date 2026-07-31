@@ -1,23 +1,49 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSupabaseConfigured, getSupabaseErrorMessage } from "./supabase-env";
 import { getQuestionById, ROLES, PASS_PERCENTAGE, TOTAL_MARKS, MCQ_MARKS } from "./assessment-data";
 
 const CreateInput = z.object({
   full_name: z.string().trim().min(1).max(120),
   email: z.string().trim().email().max(255),
+  phone: z.string().trim().min(1).max(30),
+  education_status: z.enum(["Still Pursuing", "Completed"]),
 });
 
 export const createCandidate = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => CreateInput.parse(raw))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
-      .from("candidates")
-      .insert({ full_name: data.full_name, email: data.email })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    return { id: row.id as string };
+    try {
+      assertSupabaseConfigured();
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      const { data: row, error } = await supabaseAdmin
+        .from("candidates")
+        .insert({
+          full_name: data.full_name,
+          email: data.email,
+          phone: data.phone,
+          education_status: data.education_status,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+
+      const { error: normalizedError } = await supabaseAdmin
+        .from("assessment_candidates")
+        .upsert({
+          id: row.id as string,
+          name: data.full_name,
+          email: data.email,
+          phone: data.phone,
+          education_status: data.education_status,
+        }, { onConflict: "id" });
+      if (normalizedError) throw new Error(normalizedError.message);
+
+      return { id: row.id as string };
+    } catch (error) {
+      throw new Error(getSupabaseErrorMessage(error));
+    }
   });
 
 const SubmitInput = z.object({
@@ -30,6 +56,7 @@ const SubmitInput = z.object({
 export const submitAssessment = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => SubmitInput.parse(raw))
   .handler(async ({ data }) => {
+    assertSupabaseConfigured();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { evaluateDescriptive } = await import("./evaluate.server");
 
@@ -78,6 +105,49 @@ export const submitAssessment = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    const { data: attempt, error: attemptError } = await supabaseAdmin
+      .from("assessment_attempts")
+      .insert({
+        candidate_id: data.id,
+        assessment_id: "maple-internship-assessment",
+        status: "submitted",
+        submitted_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (attemptError) throw new Error(attemptError.message);
+
+    const answerRows = Object.entries(data.mcq_answers).map(([questionId, selectedAnswer]) => {
+      const question = getQuestionById(questionId);
+      return {
+        attempt_id: attempt.id as string,
+        question_id: questionId,
+        selected_answer: selectedAnswer,
+        is_correct: Boolean(question && selectedAnswer === question.correct),
+        time_taken: 0,
+      };
+    });
+
+    if (answerRows.length > 0) {
+      const { error: answersError } = await supabaseAdmin.from("assessment_answers").insert(answerRows);
+      if (answersError) throw new Error(answersError.message);
+    }
+
+    const { error: scoreError } = await supabaseAdmin.from("assessment_scores").insert({
+      attempt_id: attempt.id as string,
+      score: totalScore,
+      percentage,
+      ai_score: descriptiveScore,
+      recommendation: ai.recommendation,
+      strengths: ai.strengths,
+      weaknesses: ai.weaknesses,
+      summary: ai.summary,
+      skill_level: percentage >= PASS_PERCENTAGE ? "Strong Fit" : "Needs Review",
+      suitable_job_roles: ROLES.map((roleDef) => roleDef.shortTitle).slice(0, 3),
+    });
+    if (scoreError) throw new Error(scoreError.message);
+
     return { ok: true, aiFallback: ai.fallback === true };
 
   });
@@ -92,6 +162,7 @@ const DraftInput = z.object({
 export const saveDraft = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => DraftInput.parse(raw))
   .handler(async ({ data }) => {
+    assertSupabaseConfigured();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("candidates")
