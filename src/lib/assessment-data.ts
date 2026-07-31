@@ -1,5 +1,14 @@
 export type MCQOption = { key: string; text: string };
-export type MCQ = { id: number; question: string; options: MCQOption[]; correct: string; marks: number };
+export type MCQ = {
+  id: number;
+  question: string;
+  type?: "mcq" | "text";
+  options: MCQOption[];
+  correct: string;
+  marks: number;
+  placeholder?: string;
+  maxLength?: number;
+};
 
 const KEYS = ["a", "b", "c", "d"];
 
@@ -8,9 +17,23 @@ function q(id: number, question: string, opts: string[], correctIndex: number): 
   return {
     id,
     question,
+    type: "mcq",
     options: opts.map((text, i) => ({ key: KEYS[i], text })),
     correct: KEYS[correctIndex],
     marks: 2,
+  };
+}
+
+function freeformTextQuestion(id: number, question: string, placeholder: string, maxLength = 500): MCQ {
+  return {
+    id,
+    question,
+    type: "text",
+    options: [],
+    correct: "",
+    marks: 0,
+    placeholder,
+    maxLength,
   };
 }
 
@@ -107,6 +130,25 @@ export const MCQ_BANK: MCQ[] = [
     "Hi, read this fast.",
   ], 1),
   q(50, "'CTA' in digital marketing stands for:", ["Click To Access", "Call To Action", "Content Traffic Analysis", "Customer Target Audience"], 1),
+
+  freeformTextQuestion(
+    51,
+    "Tell us about a creative idea you would use to make an internship program more engaging for students.",
+    "Write a creative idea and explain why it would work…",
+    500,
+  ),
+  freeformTextQuestion(
+    52,
+    "Describe a situation where you solved a problem in a practical and thoughtful way. What did you do and why?",
+    "Describe a real or imagined example from your own experience…",
+    600,
+  ),
+  freeformTextQuestion(
+    53,
+    "If you had to pitch yourself for a role in this company, what would you say in under 150 words?",
+    "Write a confident, brief introduction about yourself and your strengths…",
+    400,
+  ),
 ];
 
 /** Backwards-compatible alias. */

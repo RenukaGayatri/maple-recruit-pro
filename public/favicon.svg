@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Maple Learning Solutions">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d4d3b"/>
+      <stop offset="100%" stop-color="#2f8f72"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <path d="M32 82V46h12v36h18V32h12v50H32zm44 0V32h12v50H76zm20 0V48h12v34H96z" fill="#f8fafc"/>
+</svg>

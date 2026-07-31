@@ -41,6 +41,7 @@ function AssessmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saved, setSaved] = useState<"idle" | "saving" | "saved">("idle");
+  const [fullScreenAlert, setFullScreenAlert] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
   // hydrate
@@ -147,6 +148,92 @@ function AssessmentPage() {
   const ss = String(remaining % 60).padStart(2, "0");
   const timerCritical = remaining <= 60;
 
+  async function requestAssessmentFullscreen() {
+    try {
+      if (document.fullscreenElement) {
+        setFullScreenAlert(null);
+        return;
+      }
+
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+        setFullScreenAlert(null);
+      }
+    } catch {
+      setFullScreenAlert("Please enable full-screen mode to continue this assessment.");
+    }
+  }
+
+  useEffect(() => {
+    if (!candidateId) return;
+
+    void requestAssessmentFullscreen();
+
+    const handleFullScreenChange = () => {
+      if (!document.fullscreenElement) {
+        setFullScreenAlert("You left full-screen mode. Please return to the assessment immediately.");
+      } else {
+        setFullScreenAlert(null);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setFullScreenAlert("Please return to this assessment tab. Leaving the page may affect your submission.");
+      }
+    };
+
+    const handleWindowBlur = () => {
+      setFullScreenAlert("Please stay on this assessment page and return to full-screen mode.");
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const blockedKeys = ["c", "v", "x", "p", "s", "a", "u", "i", "j"]; 
+      const key = event.key.toLowerCase();
+
+      if ((event.ctrlKey || event.metaKey) && blockedKeys.includes(key)) {
+        event.preventDefault();
+      }
+
+      if (event.key === "Escape" || event.key === "F11" || event.key === "PrintScreen") {
+        event.preventDefault();
+      }
+    };
+
+    const preventDefaultBehavior = (event: Event) => event.preventDefault();
+
+    const previousOverflow = document.body.style.overflow;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.overflow = "hidden";
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("copy", preventDefaultBehavior);
+    document.addEventListener("cut", preventDefaultBehavior);
+    document.addEventListener("paste", preventDefaultBehavior);
+    document.addEventListener("contextmenu", preventDefaultBehavior);
+    window.addEventListener("beforeunload", preventDefaultBehavior);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullScreenChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("copy", preventDefaultBehavior);
+      document.removeEventListener("cut", preventDefaultBehavior);
+      document.removeEventListener("paste", preventDefaultBehavior);
+      document.removeEventListener("contextmenu", preventDefaultBehavior);
+      window.removeEventListener("beforeunload", preventDefaultBehavior);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.webkitUserSelect = "";
+    };
+  }, [candidateId]);
+
   async function handleSubmit(auto = false) {
     if (submittedRef.current || !candidateId) return;
     if (!auto) {
@@ -188,10 +275,33 @@ function AssessmentPage() {
   if (!candidateId || questions.length === 0) return null;
 
   const currentQ = questions[currentIdx];
+  const isTextQuestion = currentQ.type === "text";
 
   return (
     <div className="mesh-bg min-h-screen flex flex-col">
       <BrandHeader />
+
+      {fullScreenAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4">
+          <div className="w-full max-w-lg rounded-3xl border border-destructive/40 bg-white p-6 shadow-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-destructive">
+              Assessment Notice
+            </div>
+            <h3 className="mt-3 font-display text-2xl font-bold text-brand">Please stay in the assessment screen</h3>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{fullScreenAlert}</p>
+            <button
+              type="button"
+              onClick={() => {
+                void requestAssessmentFullscreen();
+                setFullScreenAlert(null);
+              }}
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90"
+            >
+              Return to Fullscreen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sticky status bar */}
       <div className="sticky top-0 z-20 border-b border-border/50 bg-white/80 backdrop-blur-xl">
@@ -245,34 +355,51 @@ function AssessmentPage() {
                 Question {currentIdx + 1}
               </div>
               <h2 className="mt-2 font-display text-xl font-bold text-brand sm:text-2xl">{currentQ.question}</h2>
-              <div className="mt-6 space-y-3">
-                {currentQ.options.map((opt) => {
-                  const selected = answers[currentQ.id] === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() => setAnswers((a) => ({ ...a, [currentQ.id]: opt.key }))}
-                      className={`group flex w-full items-start gap-4 rounded-2xl border-2 p-4 text-left transition ${
-                        selected
-                          ? "border-[color:var(--accent-green)] bg-[color:var(--accent-green)]/10"
-                          : "border-border bg-white hover:border-brand/40"
-                      }`}
-                    >
-                      <span
-                        className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold uppercase ${
+
+              {isTextQuestion ? (
+                <div className="mt-6">
+                  <textarea
+                    value={answers[currentQ.id] ?? ""}
+                    onChange={(e) => setAnswers((a) => ({ ...a, [currentQ.id]: e.target.value.slice(0, currentQ.maxLength ?? 500) }))}
+                    rows={7}
+                    placeholder={currentQ.placeholder ?? "Write your answer here…"}
+                    className="w-full rounded-2xl border border-border bg-white p-4 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
+                  />
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{(answers[currentQ.id] ?? "").trim().split(/\s+/).filter(Boolean).length} words</span>
+                    <span>{(answers[currentQ.id] ?? "").length} / {currentQ.maxLength ?? 500}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {currentQ.options.map((opt) => {
+                    const selected = answers[currentQ.id] === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setAnswers((a) => ({ ...a, [currentQ.id]: opt.key }))}
+                        className={`group flex w-full items-start gap-4 rounded-2xl border-2 p-4 text-left transition ${
                           selected
-                            ? "bg-[color:var(--accent-green)] text-brand"
-                            : "bg-muted text-muted-foreground group-hover:bg-brand/10"
+                            ? "border-[color:var(--accent-green)] bg-[color:var(--accent-green)]/10"
+                            : "border-border bg-white hover:border-brand/40"
                         }`}
                       >
-                        {opt.key}
-                      </span>
-                      <span className="text-sm font-medium text-brand sm:text-[15px]">{opt.text}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <span
+                          className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold uppercase ${
+                            selected
+                              ? "bg-[color:var(--accent-green)] text-brand"
+                              : "bg-muted text-muted-foreground group-hover:bg-brand/10"
+                          }`}
+                        >
+                          {opt.key}
+                        </span>
+                        <span className="text-sm font-medium text-brand sm:text-[15px]">{opt.text}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mt-8 flex items-center justify-between">

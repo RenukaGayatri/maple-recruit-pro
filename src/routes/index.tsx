@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   return (
     <div className="mesh-bg min-h-screen">
-      <BrandHeader showAdmin />
+      <BrandHeader />
 
       {/* Hero */}
       <section className="relative overflow-hidden">

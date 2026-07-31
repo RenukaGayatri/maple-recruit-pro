@@ -77,28 +77,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Maple Learning Solutions — Internship Assessment Portal" },
+      { title: "Maple Learning Solutions | Recruitment Assessment" },
       {
         name: "description",
         content:
-          "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here.",
+          "Complete the Maple Learning Solutions recruitment assessment and share your details for the internship opportunity.",
       },
-      { property: "og:title", content: "Maple Learning Solutions — Internship Assessment Portal" },
+      { property: "og:title", content: "Maple Learning Solutions | Recruitment Assessment" },
       {
         property: "og:description",
         content:
-          "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here.",
+          "Complete the Maple Learning Solutions recruitment assessment and share your details for the internship opportunity.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Maple Learning Solutions — Internship Assessment Portal" },
-      { name: "twitter:description", content: "Welcome to the Maple Learning Solutions Recruitment Assessment. Shortlisted internship candidates begin their written assessment here." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52802004-9bad-41c9-a2d0-b2d312ff6b28/id-preview-a06da426--f6109fb7-3404-420b-bb8d-4bae02ea9a60.lovable.app-1785326544489.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52802004-9bad-41c9-a2d0-b2d312ff6b28/id-preview-a06da426--f6109fb7-3404-420b-bb8d-4bae02ea9a60.lovable.app-1785326544489.png" },
+      { name: "twitter:title", content: "Maple Learning Solutions | Recruitment Assessment" },
+      { name: "twitter:description", content: "Complete the Maple Learning Solutions recruitment assessment and share your details for the internship opportunity." },
+      { property: "og:image", content: "/og-image.svg" },
+      { name: "twitter:image", content: "/og-image.svg" },
+      { name: "theme-color", content: "#1d4d3b" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/favicon.svg" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

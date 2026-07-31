@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Maple Learning Solutions Recruitment Assessment">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#113d32"/>
+      <stop offset="100%" stop-color="#2c8d68"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#edf7f2"/>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#g1)"/>
+  <circle cx="940" cy="150" r="180" fill="rgba(255,255,255,0.10)"/>
+  <circle cx="250" cy="510" r="220" fill="rgba(255,255,255,0.08)"/>
+  <rect x="90" y="110" width="260" height="260" rx="40" fill="rgba(255,255,255,0.12)"/>
+  <path d="M150 294V170h32v124h52V138h32v156h-116zm100 0V138h32v156h-32zm52 0V188h32v106h-32z" fill="#ffffff"/>
+  <text x="90" y="450" fill="#ffffff" font-size="62" font-family="Arial, Helvetica, sans-serif" font-weight="700">Maple Learning Solutions</text>
+  <text x="90" y="520" fill="#d9f5e7" font-size="34" font-family="Arial, Helvetica, sans-serif">Recruitment Assessment Portal</text>
+</svg>

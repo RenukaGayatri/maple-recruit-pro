@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-export function BrandHeader({ showAdmin = false }: { showAdmin?: boolean }) {
+export function BrandHeader() {
   return (
     <header className="relative z-10 border-b border-border/40 bg-white/60 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -15,11 +15,6 @@ export function BrandHeader({ showAdmin = false }: { showAdmin?: boolean }) {
             </span>
           </div>
         </Link>
-        {showAdmin && (
-          <Link to="/admin" className="text-xs font-medium text-muted-foreground hover:text-brand transition">
-            Admin
-          </Link>
-        )}
       </div>
     </header>
   );
