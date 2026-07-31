@@ -35,7 +35,9 @@ type Candidate = {
     recommendation?: string;
     summary?: string;
     breakdown?: Record<string, number>;
+    fallback?: boolean;
   } | null;
+
   ai_summary: string | null;
   completed: boolean;
   submitted_at: string | null;
