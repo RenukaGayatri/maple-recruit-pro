@@ -47,10 +47,13 @@ function CandidateDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const getFn = useServerFn(getCandidate);
+  const reevalFn = useServerFn(reevaluateCandidate);
   const [c, setC] = useState<Candidate | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [rerunning, setRerunning] = useState(false);
+  const [rerunMsg, setRerunMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("mls_admin_token") : null;
     if (!token) {
       nav({ to: "/admin" });
@@ -60,6 +63,31 @@ function CandidateDetail() {
       .then((r) => setC(r as Candidate))
       .catch((e) => setErr(e instanceof Error ? e.message : "Failed"));
   }, [getFn, id, nav]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function onRerun() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("mls_admin_token") : null;
+    if (!token) return;
+    setRerunning(true);
+    setRerunMsg(null);
+    try {
+      const res = await reevalFn({ data: { token, id } });
+      setRerunMsg(
+        res.fallback
+          ? "AI is still unavailable — please try again in a minute."
+          : "AI evaluation refreshed.",
+      );
+      load();
+    } catch (e) {
+      setRerunMsg(e instanceof Error ? e.message : "Re-evaluation failed");
+    } finally {
+      setRerunning(false);
+    }
+  }
+
 
   if (err)
     return (
