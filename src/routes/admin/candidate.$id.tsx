@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BrandHeader } from "@/components/BrandHeader";
-import { getCandidate } from "@/lib/admin.functions";
+import { getCandidate, reevaluateCandidate } from "@/lib/admin.functions";
 import { getQuestionById, type MCQ, ROLES } from "@/lib/assessment-data";
+
 
 export const Route = createFileRoute("/admin/candidate/$id")({
   head: () => ({
