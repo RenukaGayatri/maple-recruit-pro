@@ -61,7 +61,6 @@ export const submitAssessment = createServerFn({ method: "POST" })
 
     const ai = await evaluateDescriptive(data.role, roleDef.prompt, data.descriptive_answer, mcqPercent);
 
-
     const descriptiveScore = ai.descriptive_score; // 0-10
     const totalScore = mcqScore + descriptiveScore;
     const percentage = Math.round((totalScore / TOTAL_MARKS) * 100);
@@ -70,22 +69,17 @@ export const submitAssessment = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin
       .from("candidates")
       .update({
-        role: data.role,
-        mcq_answers: data.mcq_answers,
-        descriptive_answer: data.descriptive_answer,
-        mcq_score: mcqScore,
         descriptive_score: descriptiveScore,
         total_score: totalScore,
         percentage,
         status,
         ai_evaluation: ai,
         ai_summary: ai.summary,
-        completed: true,
-        submitted_at: new Date().toISOString(),
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, aiFallback: ai.fallback === true };
+
   });
 
 // Auto-save draft
