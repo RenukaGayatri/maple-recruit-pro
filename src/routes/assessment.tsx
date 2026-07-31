@@ -35,6 +35,11 @@ function AssessmentPage() {
   const [questionIds, setQuestionIds] = useState<number[]>([]);
   const [role, setRole] = useState<RoleId | "">("");
   const [descriptive, setDescriptive] = useState("");
+  const [descriptiveByRole, setDescriptiveByRole] = useState<Record<RoleId, string>>({
+    "learning-content-developer": "",
+    "social-media-marketing": "",
+    "business-development": "",
+  });
   const [section, setSection] = useState<"a" | "b">("a");
   const [currentIdx, setCurrentIdx] = useState(0);
   const [remaining, setRemaining] = useState(ASSESSMENT_DURATION_MIN * 60);
@@ -86,6 +91,11 @@ function AssessmentPage() {
         setAnswers(parsed.answers ?? {});
         setRole(parsed.role ?? "");
         setDescriptive(parsed.descriptive ?? "");
+        setDescriptiveByRole({
+          "learning-content-developer": parsed.descriptive_by_role?.["learning-content-developer"] ?? "",
+          "social-media-marketing": parsed.descriptive_by_role?.["social-media-marketing"] ?? "",
+          "business-development": parsed.descriptive_by_role?.["business-development"] ?? "",
+        });
       } catch {}
     }
   }, [navigate]);
@@ -105,12 +115,25 @@ function AssessmentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remaining, candidateId]);
 
+  const combinedDescriptive = useMemo(
+    () =>
+      ROLES.map((r) => `${r.shortTitle}\n${descriptiveByRole[r.id].trim()}`)
+        .join("\n\n---\n\n")
+        .trim(),
+    [descriptiveByRole],
+  );
+
   // Autosave every 5s
   useEffect(() => {
     if (!candidateId) return;
     sessionStorage.setItem(
       `mls_ans_${candidateId}`,
-      JSON.stringify({ answers, role, descriptive }),
+      JSON.stringify({
+        answers,
+        role,
+        descriptive,
+        descriptive_by_role: descriptiveByRole,
+      }),
     );
     setSaved("saving");
     const t = setTimeout(async () => {
@@ -120,7 +143,7 @@ function AssessmentPage() {
             id: candidateId,
             role: role || null,
             mcq_answers: answers,
-            descriptive_answer: descriptive,
+            descriptive_answer: combinedDescriptive || descriptive,
           },
         });
         setSaved("saved");
@@ -129,7 +152,7 @@ function AssessmentPage() {
       }
     }, 1500);
     return () => clearTimeout(t);
-  }, [answers, role, descriptive, candidateId, draftFn]);
+  }, [answers, role, descriptive, descriptiveByRole, candidateId, draftFn, combinedDescriptive]);
 
   const questions = useMemo(
     () => questionIds.map((qid) => getQuestionById(qid)).filter(Boolean) as MCQ[],
@@ -137,12 +160,17 @@ function AssessmentPage() {
   );
 
   const answeredCount = useMemo(
-    () => Object.keys(answers).filter((k) => answers[k]).length,
+    () => Object.keys(answers).filter((k) => answers[k]?.trim().length).length,
     [answers],
   );
   const totalSteps = (questions.length || QUESTIONS_PER_ASSESSMENT) + 1;
   const doneSteps = answeredCount + (role && descriptive.trim().length > 5 ? 1 : 0);
   const progress = Math.round((doneSteps / totalSteps) * 100);
+  const allQuestionsAnswered = questions.every((question) => {
+    const value = answers[question.id];
+    return typeof value === "string" && value.trim().length > 0;
+  });
+  const allRoleResponsesComplete = ROLES.every((r) => descriptiveByRole[r.id].trim().length >= 20);
 
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
@@ -160,7 +188,7 @@ function AssessmentPage() {
         setFullScreenAlert(null);
       }
     } catch {
-      setFullScreenAlert("Please enable full-screen mode to continue this assessment.");
+      setFullScreenAlert("Please return to full-screen mode to continue the assessment.");
     }
   }
 
@@ -188,7 +216,7 @@ function AssessmentPage() {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      const blockedKeys = ["c", "v", "x", "p", "s", "a", "u", "i", "j"]; 
+      const blockedKeys = ["c", "v", "x", "p", "s", "a", "u", "i", "j"];
       const key = event.key.toLowerCase();
 
       if ((event.ctrlKey || event.metaKey) && blockedKeys.includes(key)) {
@@ -201,12 +229,6 @@ function AssessmentPage() {
     };
 
     const preventDefaultBehavior = (event: Event) => event.preventDefault();
-
-    const previousOverflow = document.body.style.overflow;
-    const previousUserSelect = document.body.style.userSelect;
-    document.body.style.overflow = "hidden";
-    document.body.style.userSelect = "none";
-    document.body.style.webkitUserSelect = "none";
 
     document.addEventListener("fullscreenchange", handleFullScreenChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -228,23 +250,37 @@ function AssessmentPage() {
       document.removeEventListener("paste", preventDefaultBehavior);
       document.removeEventListener("contextmenu", preventDefaultBehavior);
       window.removeEventListener("beforeunload", preventDefaultBehavior);
-      document.body.style.overflow = previousOverflow;
-      document.body.style.userSelect = previousUserSelect;
-      document.body.style.webkitUserSelect = "";
     };
   }, [candidateId]);
 
   async function handleSubmit(auto = false) {
     if (submittedRef.current || !candidateId) return;
     if (!auto) {
+      const firstUnanswered = questions.findIndex((question) => {
+        const value = answers[question.id];
+        return !value || value.trim().length === 0;
+      });
+
+      if (firstUnanswered >= 0) {
+        setSection("a");
+        setCurrentIdx(firstUnanswered);
+        setSubmitError("Please answer all questions before submitting the assessment.");
+        return;
+      }
+
       if (!role) {
         setSection("b");
-        setSubmitError("Please choose a role for Section B.");
+        setSubmitError("Please choose your primary role in Section B.");
+        return;
+      }
+      if (!allRoleResponsesComplete) {
+        setSection("b");
+        setSubmitError("Please answer all 3 required role questions before submitting the assessment.");
         return;
       }
       if (descriptive.trim().length < 20) {
         setSection("b");
-        setSubmitError("Please write a more detailed answer for Section B (at least a few sentences).");
+        setSubmitError("Please write a more detailed answer for your selected role.");
         return;
       }
     }
@@ -257,7 +293,7 @@ function AssessmentPage() {
           id: candidateId,
           role: (role || "learning-content-developer") as RoleId,
           mcq_answers: answers,
-          descriptive_answer: descriptive || "(No answer provided)",
+          descriptive_answer: combinedDescriptive || descriptive || "(No answer provided)",
         },
       });
       sessionStorage.removeItem(`mls_ans_${candidateId}`);
@@ -340,14 +376,14 @@ function AssessmentPage() {
         </div>
       </div>
 
-      <main className="flex-1 mx-auto w-full max-w-4xl px-6 py-10">
+      <main className="flex-1 mx-auto w-full max-w-4xl px-6 py-10 pb-28">
         {section === "a" && (
           <>
             <div className="mb-6 flex items-center justify-between text-xs text-muted-foreground">
               <span>
                 Question {currentIdx + 1} of {questions.length}
               </span>
-              <span>2 marks · No negative marking</span>
+              <span>All questions are required</span>
             </div>
 
             <div className="card-premium p-8 animate-float-up" key={currentQ.id}>
@@ -402,7 +438,7 @@ function AssessmentPage() {
               )}
             </div>
 
-            <div className="mt-8 flex items-center justify-between">
+            <div className="mt-8 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
@@ -435,12 +471,31 @@ function AssessmentPage() {
                 <button
                   type="button"
                   onClick={() => setCurrentIdx((i) => i + 1)}
-                  className="btn-brand"
+                  className="btn-brand sticky bottom-4 z-10"
                 >
                   Next →
                 </button>
               ) : (
-                <button type="button" onClick={() => setSection("b")} className="btn-green">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!allQuestionsAnswered) {
+                      const firstUnanswered = questions.findIndex((question) => {
+                        const value = answers[question.id];
+                        return !value || value.trim().length === 0;
+                      });
+                      if (firstUnanswered >= 0) {
+                        setCurrentIdx(firstUnanswered);
+                        setSubmitError("Please answer all questions before continuing to Section B.");
+                        return;
+                      }
+                    }
+                    setSubmitError(null);
+                    setSection("b");
+                  }}
+                  className="btn-green sticky bottom-4 z-10"
+                  disabled={!allQuestionsAnswered}
+                >
                   Go to Section B →
                 </button>
               )}
@@ -461,50 +516,65 @@ function AssessmentPage() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 mb-6">
+            <div className="mb-6 rounded-2xl border border-border bg-white/80 p-5">
+              <p className="text-sm font-medium text-brand">Choose your primary role and answer all 3 required role prompts below.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {ROLES.map((r) => {
+                  const selected = role === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRole(r.id)}
+                      className={`rounded-2xl border-2 p-4 text-left transition ${
+                        selected
+                          ? "border-[color:var(--accent-green)] bg-[color:var(--accent-green)]/10"
+                          : "border-border bg-white hover:border-brand/40"
+                      }`}
+                    >
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--accent-green)]">
+                        {selected ? "Primary Role" : "Role Option"}
+                      </div>
+                      <div className="mt-1 font-display text-sm font-bold text-brand">{r.shortTitle}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-5">
               {ROLES.map((r) => {
-                const selected = role === r.id;
+                const value = descriptiveByRole[r.id];
                 return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setRole(r.id)}
-                    className={`rounded-2xl border-2 p-4 text-left transition ${
-                      selected
-                        ? "border-[color:var(--accent-green)] bg-[color:var(--accent-green)]/10"
-                        : "border-border bg-white hover:border-brand/40"
-                    }`}
-                  >
-                    <div className="text-xs font-semibold uppercase tracking-wider text-[color:var(--accent-green)]">
-                      {selected ? "Selected" : "Option"}
+                  <div key={r.id} className="card-premium p-8">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--accent-green)]">
+                        Required Prompt · {r.shortTitle}
+                      </div>
+                      <span className="rounded-full bg-[color:var(--accent-green)]/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand">
+                        Required
+                      </span>
                     </div>
-                    <div className="mt-1 font-display text-sm font-bold text-brand">{r.shortTitle}</div>
-                  </button>
+                    <p className="mt-2 font-display text-lg font-semibold text-brand sm:text-xl">{r.prompt}</p>
+                    <textarea
+                      value={value}
+                      onChange={(e) => {
+                        const nextValue = e.target.value.slice(0, 5000);
+                        setDescriptiveByRole((prev) => ({ ...prev, [r.id]: nextValue }));
+                        setDescriptive(nextValue);
+                      }}
+                      rows={7}
+                      placeholder="Write your response here…"
+                      className="mt-5 w-full rounded-xl border border-border bg-white p-4 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
+                    />
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{value.trim().split(/\s+/).filter(Boolean).length} words</span>
+                      <span>{value.length} / 5000</span>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-
-            {role && (
-              <div className="card-premium p-8">
-                <div className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--accent-green)]">
-                  Scenario Prompt · {ROLES.find((r) => r.id === role)?.shortTitle}
-                </div>
-                <p className="mt-2 font-display text-lg font-semibold text-brand sm:text-xl">
-                  {ROLES.find((r) => r.id === role)?.prompt}
-                </p>
-                <textarea
-                  value={descriptive}
-                  onChange={(e) => setDescriptive(e.target.value.slice(0, 5000))}
-                  rows={10}
-                  placeholder="Write your response here…"
-                  className="mt-5 w-full rounded-xl border border-border bg-white p-4 text-sm text-brand outline-none transition focus:border-[color:var(--accent-green)] focus:ring-2 focus:ring-[color:var(--accent-green)]/20"
-                />
-                <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>{descriptive.trim().split(/\s+/).filter(Boolean).length} words</span>
-                  <span>{descriptive.length} / 5000</span>
-                </div>
-              </div>
-            )}
 
             {submitError && (
               <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -519,7 +589,7 @@ function AssessmentPage() {
               <button
                 type="button"
                 onClick={() => handleSubmit(false)}
-                disabled={submitting}
+                disabled={submitting || !allRoleResponsesComplete}
                 className="btn-green"
               >
                 {submitting ? "Submitting & evaluating…" : "Submit Assessment"}

@@ -155,6 +155,7 @@ export const MCQ_BANK: MCQ[] = [
 export const MCQ_QUESTIONS = MCQ_BANK;
 
 export const QUESTIONS_PER_ASSESSMENT = 10;
+export const REQUIRED_LAST_QUESTION_IDS = [51, 52, 53];
 
 export function getQuestionById(id: number | string): MCQ | undefined {
   return MCQ_BANK.find((x) => x.id === Number(id));
@@ -162,12 +163,16 @@ export function getQuestionById(id: number | string): MCQ | undefined {
 
 /** Fisher–Yates draw of N unique questions — a fresh random paper per candidate. */
 export function drawQuestionIds(n: number = QUESTIONS_PER_ASSESSMENT): number[] {
-  const pool = MCQ_BANK.map((x) => x.id);
-  for (let i = pool.length - 1; i > 0; i--) {
+  const nonTextIds = MCQ_BANK.filter((question) => question.type !== "text").map((question) => question.id);
+
+  for (let i = nonTextIds.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    [nonTextIds[i], nonTextIds[j]] = [nonTextIds[j], nonTextIds[i]];
   }
-  return pool.slice(0, n);
+
+  const totalRequired = REQUIRED_LAST_QUESTION_IDS.length;
+  const selectedCore = nonTextIds.slice(0, Math.max(0, n - totalRequired));
+  return [...selectedCore, ...REQUIRED_LAST_QUESTION_IDS].slice(0, n);
 }
 
 export const ROLES = [
