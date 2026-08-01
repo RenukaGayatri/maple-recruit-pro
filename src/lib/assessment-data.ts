@@ -208,4 +208,4 @@ export type RoleId = (typeof ROLES)[number]["id"];
 export const ASSESSMENT_DURATION_MIN = 20;
 export const MCQ_MARKS = QUESTIONS_PER_ASSESSMENT * 2; // 20
 export const TOTAL_MARKS = MCQ_MARKS + 10; // 30
-export const PASS_PERCENTAGE = 70;
+export const PASS_PERCENTAGE = 55;

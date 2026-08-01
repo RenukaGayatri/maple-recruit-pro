@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { BrandHeader } from "@/components/BrandHeader";
 import { exportCandidatesCsv, listCandidates } from "@/lib/admin.functions";
-import { ROLES } from "@/lib/assessment-data";
+import { PASS_PERCENTAGE, ROLES } from "@/lib/assessment-data";
 
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
@@ -54,8 +54,8 @@ function Dashboard() {
   const stats = useMemo(() => {
     const r = rows ?? [];
     const completed = r.filter((x) => x.completed);
-    const passed = completed.filter((x) => x.status === "PASS").length;
-    const failed = completed.filter((x) => x.status === "FAIL").length;
+    const passed = completed.filter((x) => Number(x.percentage ?? 0) >= PASS_PERCENTAGE).length;
+    const failed = completed.filter((x) => Number(x.percentage ?? 0) < PASS_PERCENTAGE).length;
     const avg = completed.length
       ? Math.round(completed.reduce((s, x) => s + (x.percentage ?? 0), 0) / completed.length)
       : 0;
@@ -72,8 +72,10 @@ function Dashboard() {
   const filtered = useMemo(() => {
     const r = rows ?? [];
     return r.filter((x) => {
-      if (filter === "pass" && x.status !== "PASS") return false;
-      if (filter === "fail" && x.status !== "FAIL") return false;
+      const pct = Number(x.percentage ?? 0);
+      const isPass = pct >= PASS_PERCENTAGE;
+      if (filter === "pass" && !isPass) return false;
+      if (filter === "fail" && isPass) return false;
       if (filter === "pending" && x.completed) return false;
       if (q) {
         const t = q.toLowerCase();
@@ -236,7 +238,7 @@ function Dashboard() {
                         <td className="py-4 pr-4">
                           {!r.completed ? (
                             <span className="badge-neutral">Pending</span>
-                          ) : r.status === "PASS" ? (
+                          ) : Number(r.percentage ?? 0) >= PASS_PERCENTAGE ? (
                             <span className="badge-pass">✓ Pass</span>
                           ) : (
                             <span className="badge-fail">✗ Not Shortlisted</span>

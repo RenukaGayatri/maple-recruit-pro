@@ -67,7 +67,7 @@ function Landing() {
                 {[
                   { k: "11", v: "Questions" },
                   { k: "30", v: "Total Marks" },
-                  { k: "70%", v: "To Qualify" },
+                  { k: "55%", v: "To Qualify" },
                 ].map((s) => (
                   <div key={s.v} className="rounded-2xl bg-white/70 p-4">
                     <div className="font-display text-3xl font-extrabold text-brand">{s.k}</div>
@@ -105,7 +105,7 @@ function Landing() {
               A clear path from assessment to offer
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-              Candidates scoring 70% or above will qualify for the interview process.
+              Candidates scoring 55% or above will qualify for the interview process.
             </p>
           </div>
 
@@ -117,7 +117,7 @@ function Landing() {
                   n: "01",
                   t: "Online Assessment",
                   d: "A randomly generated paper covering aptitude, reasoning, language, and a role-specific scenario.",
-                  meta: "Minimum qualifying score: 70%",
+                  meta: "Minimum qualifying score: 55%",
                 },
                 {
                   n: "02",
