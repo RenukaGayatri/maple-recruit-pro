@@ -48,7 +48,7 @@ export const createCandidate = createServerFn({ method: "POST" })
 
 const SubmitInput = z.object({
   id: z.string().uuid(),
-  role: z.enum(["learning-content-developer", "social-media-marketing", "business-development"]),
+  role: z.enum(["finance-intern", "social-media-marketing", "business-development"]),
   mcq_answers: z.record(z.string(), z.string()),
   descriptive_answer: z.string().trim().min(1).max(5000),
 });

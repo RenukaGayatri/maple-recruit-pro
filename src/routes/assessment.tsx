@@ -36,7 +36,7 @@ function AssessmentPage() {
   const [role, setRole] = useState<RoleId | "">("");
   const [descriptive, setDescriptive] = useState("");
   const [descriptiveByRole, setDescriptiveByRole] = useState<Record<RoleId, string>>({
-    "learning-content-developer": "",
+    "finance-intern": "",
     "social-media-marketing": "",
     "business-development": "",
   });
@@ -92,7 +92,7 @@ function AssessmentPage() {
         setRole(parsed.role ?? "");
         setDescriptive(parsed.descriptive ?? "");
         setDescriptiveByRole({
-          "learning-content-developer": parsed.descriptive_by_role?.["learning-content-developer"] ?? "",
+          "finance-intern": parsed.descriptive_by_role?.["finance-intern"] ?? "",
           "social-media-marketing": parsed.descriptive_by_role?.["social-media-marketing"] ?? "",
           "business-development": parsed.descriptive_by_role?.["business-development"] ?? "",
         });
@@ -170,7 +170,7 @@ function AssessmentPage() {
     const value = answers[question.id];
     return typeof value === "string" && value.trim().length > 0;
   });
-  const allRoleResponsesComplete = ROLES.every((r) => descriptiveByRole[r.id].trim().length >= 20);
+  const allRoleResponsesComplete = role ? descriptiveByRole[role].trim().length >= 20 : false;
 
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
@@ -275,7 +275,7 @@ function AssessmentPage() {
       }
       if (!allRoleResponsesComplete) {
         setSection("b");
-        setSubmitError("Please answer all 3 required role questions before submitting the assessment.");
+        setSubmitError("Please answer the required role prompts before submitting the assessment.");
         return;
       }
       if (descriptive.trim().length < 20) {
@@ -291,7 +291,7 @@ function AssessmentPage() {
       await submitFn({
         data: {
           id: candidateId,
-          role: (role || "learning-content-developer") as RoleId,
+          role: (role || "finance-intern") as RoleId,
           mcq_answers: answers,
           descriptive_answer: combinedDescriptive || descriptive || "(No answer provided)",
         },

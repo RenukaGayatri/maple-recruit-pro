@@ -61,7 +61,12 @@ export const MCQ_BANK: MCQ[] = [
     "Each of the student have submitted the form.",
     "Each of the students having submitted the form.",
   ], 1),
-  q(8, "Choose the correct preposition: She is good _____ solving puzzles.", ["in", "at", "on", "for"], 1),
+  q(
+    8,
+    "Which financial statement shows a company's profitability over a period?",
+    ["Balance Sheet", "Income Statement", "Cash Flow Statement", "Statement of Changes in Equity"],
+    1,
+  ),
   q(9, "Choose the antonym of 'Transparent'.", ["Clear", "Opaque", "Visible", "Plain"], 1),
   q(10, "Which word is a correctly used adverb? 'He completed the task _____.'", ["quick", "quickly", "quicker than", "quickness"], 1),
   q(11, "Choose the correct form: 'Neither the manager nor the interns _____ available.'", ["is", "was", "are", "has"], 2),
@@ -133,8 +138,8 @@ export const MCQ_BANK: MCQ[] = [
 
   freeformTextQuestion(
     51,
-    "Tell us about a creative idea you would use to make an internship program more engaging for students.",
-    "Write a creative idea and explain why it would work…",
+    "Describe a finance-related initiative you would introduce to help students build better money habits during an internship program.",
+    "Share a practical idea, why it matters, and how students would benefit…",
     500,
   ),
   freeformTextQuestion(
@@ -177,12 +182,12 @@ export function drawQuestionIds(n: number = QUESTIONS_PER_ASSESSMENT): number[] 
 
 export const ROLES = [
   {
-    id: "learning-content-developer",
-    title: "Interactive Learning Content Developer Intern",
-    shortTitle: "Learning Content Developer",
-    prompt: "Explain how a bicycle works to a 10-year-old.",
+    id: "finance-intern",
+    title: "Finance Intern",
+    shortTitle: "Finance Intern",
+    prompt: "Outline how you would prepare a basic monthly budget for a small team and suggest two cost-saving measures.",
     description:
-      "Design engaging educational content and interactive learning experiences for our platform.",
+      "Support financial planning, budgeting, and basic analysis for the organization.",
   },
   {
     id: "social-media-marketing",

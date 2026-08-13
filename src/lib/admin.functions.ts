@@ -94,7 +94,7 @@ function parseComprehensiveRoleAnswers(raw: string | null | undefined) {
   if (!raw || !raw.trim()) return [] as Array<{ questionId: string; answer: string; label: string }>;
 
   const roleTitles = [
-    "Learning Content Developer",
+    "Finance Intern",
     "Social Media Marketing",
     "Business Development",
   ];
@@ -407,7 +407,7 @@ export const reevaluateCandidate = createServerFn({ method: "POST" })
     }
     const mcqPercent = Math.round((mcqScore / MCQ_MARKS) * 100);
 
-    const role = row.role ?? "learning-content-developer";
+    const role = row.role ?? "finance-intern";
     const roleDef = ROLES.find((r) => r.id === role);
     if (!roleDef) throw new Error("Unknown role on candidate record");
 
